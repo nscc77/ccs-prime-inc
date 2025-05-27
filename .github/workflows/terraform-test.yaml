@@ -21,7 +21,7 @@ permissions:
 jobs:
   terraform-deploy:
     runs-on: ubuntu-22.04
-    environment: dev
+#    environment: dev
 
     steps:
       - name: Clone Repo
