@@ -7,6 +7,7 @@ on:
     paths:
       - 'terraform/dev-env**'
   pull_request:
+    types: [closed]  # triggers only when PR is merged
     branches:
       - dev
     paths:
@@ -16,12 +17,12 @@ on:
 permissions:
   id-token: write
   contents: read
-  pull-requests: write  # needed to post PR comments
 
 jobs:
   terraform-deploy:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-22.04
-    environment: dev
+    environment: dev  # this enforces manual approval before apply
 
     steps:
       - name: Clone Repo
@@ -37,33 +38,32 @@ jobs:
       - name: Fetch AWS Account ID
         run: |
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
-          echo "TF_VAR_acct_id=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "TF_VAR_AWS_ACCT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
           echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
-          echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"  # Debugging step
+          echo "TF_VAR_AWS_REGION=${{ vars.AWS_REGION }}" >> $GITHUB_ENV
 
       - name: Set up Git credentials for private modules
         run: |
           git config --global url."https://${{ secrets.GH_PAT }}@github.com/".insteadOf "https://github.com/"
 
       - name: Terraform Init
-        working-directory: ./terraform/root-module
+        working-directory: ./terraform/dev-env
         run: |
           terraform init \
             -backend-config="bucket=${AWS_ACCOUNT_ID}-dev-app-state-bucket" \
-            -backend-config="key=${GITHUB_REF##*/}.tfstate" \
+            -backend-config="key=${{ github.ref_name }}.tfstate" \
             -backend-config="region=${{ vars.AWS_REGION }}" \
             -backend-config="use_lockfile=true"
 
       - name: Terraform Validate
-        working-directory: ./terraform/root-module
+        working-directory: ./terraform/dev-env
         run: terraform validate
 
       - name: Terraform Plan
-        working-directory: ./terraform/root-module
-        run: terraform plan -input=false -no-color | tee tfplan.txt
+        working-directory: ./terraform/dev-env
+        run: terraform plan -input=false -no-color
 
-      - name: Comment Plan on PR
-        if: github.event_name == 'pull_request'
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          path: ./terraform/root-module/tfplan.txt
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/dev' && github.event_name == 'pull_request' && github.event.pull_request.merged == true
+        working-directory: ./terraform/dev-env
+        run: terraform apply -auto-approve
