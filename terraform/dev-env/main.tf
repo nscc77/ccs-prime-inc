@@ -20,7 +20,7 @@ module "dynamodb_table" {
 module "lamda-module" {
   source = "git::https://github.com/nscc77/final-project-serverless.git//terraform/lamda-module?ref=main"
 
-  lambda_name        = "serverless24b-redhat-lambda"
+  lambda_name        = "serverless24b-bravo-lambda"
   image_uri          = "021891586336.dkr.ecr.us-east-1.amazonaws.com/backend-app:86457a5885b3278ff9a60d5beaeb6aff301bf0c5"
   region             = "${var.AWS_REGION}"
   account_id         = "${var.AWS_ACCT_ID}"
