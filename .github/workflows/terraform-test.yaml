@@ -37,9 +37,9 @@ jobs:
       - name: Fetch AWS Account ID
         run: |
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
-          echo "TF_VAR_acct_id=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "TF_VAR_ACCT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
           echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
-          echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"  # Debugging step
+          echo "TF_VAR_AWS_REGION=${{ vars.AWS_REGION }}" >> $GITHUB_ENV
 
       - name: Set up Git credentials for private modules
         run: |
@@ -66,4 +66,4 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          path: ./terraform/root-module/tfplan.txt
+          path: ./terraform/dev-env/tfplan.txt
