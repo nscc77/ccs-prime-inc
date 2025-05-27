@@ -27,10 +27,6 @@ jobs:
       - name: Clone Repo
         uses: actions/checkout@v3
 
-      - name: Set Environment Name
-        run: |
-          echo "env=${{ job.environment }}" >> $GITHUB_ENV
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -51,7 +47,7 @@ jobs:
         working-directory: ./terraform/root-module
         run: |
           terraform init \
-            -backend-config="bucket=${TF_VAR_AWS_ACCT_ID}-${env}-app-state-bucket" \
+            -backend-config="bucket=${TF_VAR_AWS_ACCT_ID}-dev-app-state-bucket" \
             -backend-config="key=${GITHUB_REF##*/}.tfstate" \
             -backend-config="region=${TF_VAR_AWS_REGION}" \
             -backend-config="use_lockfile=true"
