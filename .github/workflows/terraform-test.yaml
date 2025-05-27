@@ -34,10 +34,12 @@ jobs:
           role-to-assume: ${{ vars.IAM_ROLE }}
           role-session-name: "${{ github.actor }}-${{ github.run_id }}"
 
-      - name: Set Terraform Environment Variables
+      - name: Fetch AWS Account ID
         run: |
-          echo "TF_VAR_AWS_ACCT_ID=${{ secrets.ACCT_ID }}" >> $GITHUB_ENV
-          echo "TF_VAR_AWS_REGION=${{ vars.AWS_REGION }}" >> $GITHUB_ENV
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+          echo "TF_VAR_acct_id=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"  # Debugging step
 
       - name: Set up Git credentials for private modules
         run: |
@@ -47,9 +49,9 @@ jobs:
         working-directory: ./terraform/root-module
         run: |
           terraform init \
-            -backend-config="bucket=${TF_VAR_AWS_ACCT_ID}-dev-app-state-bucket" \
+            -backend-config="bucket=${AWS_ACCOUNT_ID}-dev-app-state-bucket" \
             -backend-config="key=${GITHUB_REF##*/}.tfstate" \
-            -backend-config="region=${TF_VAR_AWS_REGION}" \
+            -backend-config="region=${{ vars.AWS_REGION }}" \
             -backend-config="use_lockfile=true"
 
       - name: Terraform Validate
