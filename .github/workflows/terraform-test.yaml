@@ -55,11 +55,11 @@ jobs:
             -backend-config="use_lockfile=true"
 
       - name: Terraform Validate
-        working-directory: ./terraform/root-module
+        working-directory: ./terraform/dev-env
         run: terraform validate
 
       - name: Terraform Plan
-        working-directory: ./terraform/root-module
+        working-directory: ./terraform/dev-env
         run: terraform plan -input=false -no-color | tee tfplan.txt
 
       - name: Comment Plan on PR
