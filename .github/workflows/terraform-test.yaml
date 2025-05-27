@@ -35,6 +35,12 @@ jobs:
           echo "TF_VAR_AWS_ACCT_ID=${{ secrets.ACCT_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_AWS_REGION=${{ vars.AWS_REGION }}" >> $GITHUB_ENV
 
+      # 3.1Set up Git credentials for private modules
+      - name: Set up Git credentials for private modules
+        run: |
+          git config --global url."https://${{ secrets.GH_PAT }}@github.com/".insteadOf "https://github.com/"
+
+
       # 4. Terraform Init, Validate, Plan, and Apply
       - name: Terraform Init, Validate, Plan, and Apply
         working-directory: ./terraform/root-module
