@@ -1,1 +1,52 @@
+name: Destroy Terraform Infrastructure
 
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to destroy (e.g. dev)'
+        required: true
+        default: 'dev'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform-destroy:
+    runs-on: ubuntu-22.04
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ vars.IAM_ROLE }}
+          role-session-name: "${{ github.actor }}-${{ github.run_id }}"
+
+      - name: Fetch AWS Account ID
+        run: |
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+          echo "TF_VAR_acct_id=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+
+      - name: Set up Git credentials (for private modules)
+        run: |
+          git config --global url."https://${{ secrets.GH_PAT }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Terraform Init
+        working-directory: ./terraform/root-module
+        run: |
+          terraform init \
+            -backend-config="bucket=${AWS_ACCOUNT_ID}-dev-app-state-bucket" \
+            -backend-config="key=destroy.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION }}" \
+            -backend-config="use_lockfile=true"
+
+      - name: Terraform Destroy
+        working-directory: ./terraform/root-module
+        run: terraform destroy -auto-approve
